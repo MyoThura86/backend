@@ -14,6 +14,8 @@ app.use(express.static('dist'))
 app.get('/api/notes', (req, res) => {
     Note.find({}).then(result => {
         res.json(result)
+    }).catch(error => {
+        res.status(500).json({ error: 'failed to fetch notes' })
     })
 })
 
@@ -46,8 +48,9 @@ app.post('/api/notes', (req, res) => {
     })
     note.save().then(savedNote => {
         res.json(savedNote)
+    }).catch(error => {
+        res.status(500).json({ error: 'failed to save note' })
     })
-
 })
 
 // ✅ UPDATE note
@@ -65,7 +68,6 @@ app.put('/api/notes/:id', (req, res) => {
             res.json(result)
         })
         .catch(error => {
-            console.log(error)
             res.status(400).send({ error: 'malformatted id' })
         })
 })
@@ -78,7 +80,6 @@ app.delete('/api/notes/:id', (req, res) => {
             res.status(204).end()
         })
         .catch(error => {
-            console.log(error)
             res.status(400).send({ error: 'malformatted id' })
         })
 })
