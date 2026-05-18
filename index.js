@@ -20,7 +20,7 @@ app.get('/api/notes', (req, res) => {
 })
 
 // ✅ GET single note
-app.get('/api/notes/:id', (req, res) => {
+app.get('/api/notes/:id', (req, res, next) => {
   Note.findById(req.params.id)
     .then(result => {
       if (result) {
@@ -29,13 +29,11 @@ app.get('/api/notes/:id', (req, res) => {
         res.status(404).end()
       }
     })
-    .catch(error => {
-      res.status(400).send({ error: 'malformatted id' })
-    })
+    .catch(error => next(error))
 })
 
 // ✅ CREATE note
-app.post('/api/notes', (req, res) => {
+app.post('/api/notes', (req, res,next) => {
     const body = req.body
 
     if (!body.content) {
@@ -48,41 +46,53 @@ app.post('/api/notes', (req, res) => {
     })
     note.save().then(savedNote => {
         res.json(savedNote)
-    }).catch(error => {
-        res.status(500).json({ error: 'failed to save note' })
-    })
+    }).catch(error => next(error))
 })
 
 // ✅ UPDATE note
 app.put('/api/notes/:id', (req, res) => {
-    const id = String(req.params.id)
-    const body = req.body
-
-    const updatedNote = {
-        content: body.content,
-        important: body.important
-    }
-
-    Note.findByIdAndUpdate(req.params.id, updatedNote, { new: true })
-        .then(result => {
-            res.json(result)
+    const { content, important } = req.body
+    
+    Note.findById(req.params.id)
+        .then(note =>{
+            if(!note) {
+                return res.status(404).end()
+            }
+            note.content = content
+            note.important = important
+            return note.save().then(updatedNote => {
+                res.json(updatedNote)
+            })
         })
-        .catch(error => {
-            res.status(400).send({ error: 'malformatted id' })
-        })
+        .catch(error => next(error))
 })
 
 // ✅ DELETE (optional but useful)
-app.delete('/api/notes/:id', (req, res) => {
-    const id = String(req.params.id)
+app.delete('/api/notes/:id', (req, res, next) => {
+
     Note.findByIdAndRemove(req.params.id)
         .then(result => {
             res.status(204).end()
         })
-        .catch(error => {
-            res.status(400).send({ error: 'malformatted id' })
-        })
+        .catch(error => next(error))
 })
+
+const unkownEndpoint = (req, res) => {
+    res.status(404).send({ error: 'unknown endpoint' })
+}
+app.use(unkownEndpoint)
+const errorHandler = (error, req, res, next) => {
+    console.error(error.message)
+    if (error.name === 'CastError') {
+        return res.status(400).send({ error: 'malformatted id' })
+    }
+    if (error.name === 'ValidationError') {
+        return res.status(400).json({ error: error.message })
+    }
+    next(error)
+}
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
