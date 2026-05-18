@@ -36,18 +36,13 @@
 // })
 const mongoose = require('mongoose')
 
-if (process.argv.length < 5) {
-  console.log('give password, content, and important as arguments')
-  process.exit(1)
-}
-
-const password = process.argv[2]
-
-const url = `mongodb+srv://myowithmom_db_user:${password}@cluster0.ivol8wt.mongodb.net/noteApp?retryWrites=true&w=majority&appName=Cluster0`
+const url = process.env.MONGODB_URI
 
 mongoose.set('strictQuery',false)
 
-mongoose.connect(url, { family: 4 })
+mongoose.connect(url)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.log("MongoDB error:", err));
 
 const noteSchema = new mongoose.Schema({
   content: String,
@@ -66,9 +61,3 @@ note.save().then(result => {
   mongoose.connection.close()
 })
 
-// Note.find({important: false}).then(result => {
-//   result.forEach(note => {
-//     console.log(note)
-//   })
-//   mongoose.connection.close()
-// })
